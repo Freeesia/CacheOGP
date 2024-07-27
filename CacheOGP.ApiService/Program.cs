@@ -23,6 +23,10 @@ builder.Services.AddHttpClient();
 builder.AddRedisOutputCache("cache");
 builder.AddNpgsqlDbContext<OgpDbContext>("ogp");
 builder.Services.AddResponseCaching();
+builder.Services.AddResponseCompression(op =>
+{
+    op.EnableForHttps = true;
+});
 
 var app = builder.Build();
 
@@ -30,6 +34,8 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseResponseCaching();
 app.UseOutputCache();
+app.UseResponseCompression();
+
 app.MapGet("/info", GetOgpInfo);
 app.MapGet("/ogp", GetOgp);
 app.MapGet("/embed", GetOgpEmbed);
