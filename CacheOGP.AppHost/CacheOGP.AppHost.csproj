@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CacheOGP.ApiService\CacheOGP.ApiService.csproj" />
+    <ProjectReference Include="..\CacheOGP.DbInitializer\CacheOGP.DbInitializer.csproj" />
     <ProjectReference Include="..\CacheOGP.Web\CacheOGP.Web.csproj" />
   </ItemGroup>
 
