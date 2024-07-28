@@ -149,12 +149,13 @@ static async Task<IResult> GetImage([FromQuery] Uri url, OgpDbContext db, HttpCl
     if (image is null || image.ExpiresAt < DateTime.UtcNow || image.Etag != ogp.Etag || image.LastModified != ogp.LastModified)
     {
         using var page = await browser.NewPageAsync();
-        //await page.SetViewportAsync(ViewPortOptions.Default with { DeviceScaleFactor = 2});
+        await page.SetViewportAsync(ViewPortOptions.Default with { DeviceScaleFactor = 2 });
         var thumbId = new Guid(ogp.Image.OriginalString["thumb/".Length..]);
         var thumb = await db.Images.FindAsync(thumbId) ?? throw new InvalidOperationException();
         await page.SetContentAsync(GenHtmlContent(ogp.Title, ogp.Url, thumb.GetBase64Image(), ogp.Description, ogp.SiteName));
         var element = await page.QuerySelectorAsync(".ogp-card") ?? throw new InvalidOperationException();
-        var sc = await element.ScreenshotDataAsync(new() { Type = ScreenshotType.Png, OmitBackground = true });
+        // CaptureBeyondViewport‚ðtrue‚É‚·‚é‚ÆA‰æ‘œ‚ªƒoƒO‚é
+        var sc = await element.ScreenshotDataAsync(new() { Type = ScreenshotType.Png, OmitBackground = true, CaptureBeyondViewport = false });
         using var bitmap = SKBitmap.Decode(sc);
         using var ski = SKImage.FromBitmap(bitmap);
         using var data = ski.Encode(SKEncodedImageFormat.Webp, 100);
