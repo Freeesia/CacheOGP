@@ -7,6 +7,7 @@ using CacheOGP.ApiService;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IO;
 using OpenGraphNet;
 using PuppeteerSharp;
 using SkiaSharp;
@@ -88,7 +89,7 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
     {
         var isa = res.Headers.Date?.UtcDateTime ?? DateTime.UtcNow;
         var exp = isa + age;
-        var last = res.Headers.GetLastModified();
+        var last = res.Content.Headers.LastModified?.UtcDateTime;
         var etag = res.Headers.ETag?.Tag;
         var ogp = OpenGraph.ParseHtml(await res.Content.ReadAsStringAsync());
         var id = await db.SetOgpThumb(client, ogp.Image ?? throw new InvalidOperationException());
@@ -152,7 +153,7 @@ static async Task<IResult> GetImage([FromQuery] Uri url, OgpDbContext db, HttpCl
         var thumb = await db.Images.FindAsync(thumbId) ?? throw new InvalidOperationException();
         await page.SetContentAsync(GenHtmlContent(ogp.Title, ogp.Url, thumb.GetBase64Image(), ogp.Description, ogp.SiteName));
         var element = await page.QuerySelectorAsync(".ogp-card") ?? throw new InvalidOperationException();
-        var sc = await element.ScreenshotDataAsync(new() { Type = ScreenshotType.Png, OmitBackground = true, BurstMode = true });
+        var sc = await element.ScreenshotDataAsync(new() { Type = ScreenshotType.Png, OmitBackground = true });
         using var bitmap = SKBitmap.Decode(sc);
         using var ski = SKImage.FromBitmap(bitmap);
         using var data = ski.Encode(SKEncodedImageFormat.Webp, 100);
@@ -194,7 +195,8 @@ static string GenHtmlContent(string title, Uri url, string image, string? desc, 
     }
     .ogp-image {
         width: 100%;
-        height: auto;
+        height: 400px;
+        object-fit: cover;
     }
     .ogp-content {
         padding: 16px;
@@ -210,6 +212,7 @@ static string GenHtmlContent(string title, Uri url, string image, string? desc, 
     .ogp-site-name {
         font-size: 0.9em;
         color: #888;
+        margin-block-end: 0px;
     }
     </style>
     <div class="ogp-card">
@@ -226,6 +229,7 @@ static string GenHtmlContent(string title, Uri url, string image, string? desc, 
 
 static class Extensions
 {
+    private static readonly RecyclableMemoryStreamManager StreamManager = new();
     private static readonly Guid ThumbNamespace = Guid.Parse("77A05C22-DF4C-450A-927D-3DF3CCB80004");
 
     public static async Task<Guid> SetOgpThumb(this OgpDbContext db, HttpClient client, Uri originUrl)
@@ -257,10 +261,17 @@ static class Extensions
         {
             var isa = res.Headers.Date?.UtcDateTime ?? DateTime.UtcNow;
             var exp = isa + age;
-            var last = res.Headers.GetLastModified();
+            var last = res.Content.Headers.LastModified?.UtcDateTime;
             var etag = res.Headers.ETag?.Tag;
-            using var input = await res.Content.ReadAsStreamAsync();
-            using var bitmap = SKBitmap.Decode(input);
+            using var input = StreamManager.GetStream(id, null, res.Content.Headers.ContentLength ?? 0);
+            await res.Content.CopyToAsync(input);
+            input.Position = 0;
+            using var codec = SKCodec.Create(input, out var result);
+            if (result != SKCodecResult.Success)
+            {
+                throw new InvalidOperationException(result.ToString());
+            }
+            using var bitmap = SKBitmap.Decode(codec);
             using var ski = SKImage.FromBitmap(bitmap);
             using var data = ski.Encode(SKEncodedImageFormat.Webp, 100);
             using var output = data.AsStream(true);
@@ -270,19 +281,6 @@ static class Extensions
         }
         await db.Upsert(image).RunAsync();
         return id;
-    }
-
-    public static DateTime? GetLastModified(this HttpResponseHeaders headers)
-    {
-        if (!headers.TryGetValues("Last-Modified", out var lm))
-        {
-            return null;
-        }
-        if (!DateTime.TryParseExact(lm.First(), "ddd, dd MMM yyyy HH:mm:ss 'GMT'", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var last))
-        {
-            return null;
-        }
-        return last;
     }
 
     public static string GetBase64Image(this OgpImage image)
