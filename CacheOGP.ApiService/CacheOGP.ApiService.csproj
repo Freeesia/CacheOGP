@@ -20,6 +20,7 @@
     </PackageReference>
     <PackageReference Include="OpenGraph-Net" Version="4.0.1" />
     <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="8.0.0" />
+    <PackageReference Include="PuppeteerSharp" Version="18.0.5" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.8" />
     <PackageReference Include="UUIDNext" Version="3.0.0" />
   </ItemGroup>

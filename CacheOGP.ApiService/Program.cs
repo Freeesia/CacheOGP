@@ -8,10 +8,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using OpenGraphNet;
+using PuppeteerSharp;
 using SkiaSharp;
 using UUIDNext;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var browserFetcher = new BrowserFetcher(SupportedBrowser.Chromium);
+await browserFetcher.DownloadAsync();
 
 // Add service defaults & Aspire components.
 builder.AddServiceDefaults();
@@ -27,6 +31,7 @@ builder.Services.AddResponseCompression(op =>
 {
     op.EnableForHttps = true;
 });
+builder.Services.AddSingleton(sp => Puppeteer.LaunchAsync(new() { Browser = SupportedBrowser.Chromium }, sp.GetService<ILoggerFactory>()).Result);
 
 var app = builder.Build();
 
@@ -40,6 +45,7 @@ app.MapGet("/info", GetOgpInfo);
 app.MapGet("/ogp", GetOgp);
 app.MapGet("/embed", GetOgpEmbed);
 app.MapGet("/thumb/{id:guid}", GetThumb);
+app.MapGet("/image", GetImage);
 
 app.MapDefaultEndpoints();
 
@@ -85,7 +91,7 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
         var last = res.Headers.GetLastModified();
         var etag = res.Headers.ETag?.Tag;
         var ogp = OpenGraph.ParseHtml(await res.Content.ReadAsStringAsync());
-        var id = await db.SetOgpImage(client, ogp.Image ?? throw new InvalidOperationException());
+        var id = await db.SetOgpThumb(client, ogp.Image ?? throw new InvalidOperationException());
         info = new(
             url,
             ogp.Url ?? throw new InvalidOperationException(),
@@ -111,66 +117,7 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
 static async Task<IResult> GetOgpEmbed([FromQuery] Uri url, OgpDbContext db, HttpClient client)
 {
     var ogp = await GetOgp(url, db, client);
-    return Results.Text($$"""
-        <!DOCTYPE HTML>
-        <meta chartset="utf-8">
-        <title>{{ogp.Title}}</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                background-color: #f9f9f9;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                margin: 0;
-            }
-            .ogp-card {
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                width: 600px;
-                background-color: #fff;
-                overflow: hidden;
-                text-decoration: none;
-            }
-            .ogp-card a {
-                text-decoration: none;
-                color: inherit;
-            }
-            .ogp-image {
-                width: 100%;
-                height: auto;
-            }
-            .ogp-content {
-                padding: 16px;
-            }
-            .ogp-title {
-                font-size: 1.5em;
-                margin: 0 0 8px;
-            }
-            .ogp-description {
-                color: #555;
-                margin: 0 0 16px;
-            }
-            .ogp-site-name {
-                font-size: 0.9em;
-                color: #888;
-            }
-        </style>
-        <div class="ogp-card">
-            <a href="{{ogp.Url}}" target="_blank">
-                <img src="../{{ogp.Image}}" alt="OGP Image" class="ogp-image">
-                <div class="ogp-content">
-                    <h1 class="ogp-title">{{ogp.Title}}</h1>
-                    <p class="ogp-description">{{ogp.Description}}</p>
-                    <p class="ogp-site-name">{{ogp.SiteName}}</p>
-                </div>
-            </a>
-        </div>
-        """,
-        MediaTypeNames.Text.Html,
-        Encoding.UTF8);
+    return Results.Text(GenHtmlContent(ogp.Title, ogp.Url, "../" + ogp.Image.ToString(), ogp.Description, ogp.SiteName), MediaTypeNames.Text.Html, Encoding.UTF8);
 }
 
 #if !DEBUG
@@ -186,34 +133,125 @@ static async Task<IResult> GetThumb(Guid id, OgpDbContext db)
     return Results.Bytes(image.Image, MediaTypeNames.Image.Webp, lastModified: image.LastModified, entityTag: image.Etag is { } e ? new(e, true) : null);
 }
 
+
+#if !DEBUG
+[OutputCache(Duration = 60 * 60), ResponseCache(Duration = 60 * 60)]
+#endif
+static async Task<IResult> GetImage([FromQuery] Uri url, OgpDbContext db, HttpClient client, IBrowser browser)
+{
+    var ogp = await GetOgpInfo(url, db, client);
+
+    var ns = new Guid("95DDE42A-79E7-46C6-A9DC-25C8ED7CFF73");
+    var id = Uuid.NewNameBased(ns, ogp.Url.ToString());
+    var image = await db.Images.FindAsync(id);
+    if (image is null || image.ExpiresAt < DateTime.UtcNow || image.Etag != ogp.Etag || image.LastModified != ogp.LastModified)
+    {
+        using var page = await browser.NewPageAsync();
+        //await page.SetViewportAsync(ViewPortOptions.Default with { DeviceScaleFactor = 2});
+        var thumbId = new Guid(ogp.Image.OriginalString["thumb/".Length..]);
+        var thumb = await db.Images.FindAsync(thumbId) ?? throw new InvalidOperationException();
+        await page.SetContentAsync(GenHtmlContent(ogp.Title, ogp.Url, thumb.GetBase64Image(), ogp.Description, ogp.SiteName));
+        var element = await page.QuerySelectorAsync(".ogp-card") ?? throw new InvalidOperationException();
+        var sc = await element.ScreenshotDataAsync(new() { Type = ScreenshotType.Png, OmitBackground = true, BurstMode = true });
+        using var bitmap = SKBitmap.Decode(sc);
+        using var ski = SKImage.FromBitmap(bitmap);
+        using var data = ski.Encode(SKEncodedImageFormat.Webp, 100);
+        using var output = data.AsStream(true);
+        var bytes = new byte[output.Length];
+        await output.ReadAsync(bytes.AsMemory(0, bytes.Length));
+        image = new(id, url, bytes, ogp.IssuedAt, ogp.ExpiresAt, ogp.Etag, ogp.LastModified);
+        await db.Upsert(image).RunAsync();
+    }
+    return Results.Bytes(image.Image, MediaTypeNames.Image.Webp, lastModified: image.LastModified, entityTag: image.Etag is { } e ? new(e, true) : null);
+}
+
+static string GenHtmlContent(string title, Uri url, string image, string? desc, string? site)
+    => $$"""
+    <!DOCTYPE HTML>
+    <meta chartset="utf-8">
+    <title>{{title}}</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .ogp-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 600px;
+        background-color: #fff;
+        overflow: hidden;
+        text-decoration: none;
+    }
+    .ogp-card a {
+        text-decoration: none;
+        color: inherit;
+    }
+    .ogp-image {
+        width: 100%;
+        height: auto;
+    }
+    .ogp-content {
+        padding: 16px;
+    }
+    .ogp-title {
+        font-size: 1.5em;
+        margin: 0 0 8px;
+    }
+    .ogp-description {
+        color: #555;
+        margin: 0 0 16px;
+    }
+    .ogp-site-name {
+        font-size: 0.9em;
+        color: #888;
+    }
+    </style>
+    <div class="ogp-card">
+        <a href="{{url}}" target="_blank">
+            <img src="{{image}}" alt="OGP Image" class="ogp-image">
+            <div class="ogp-content">
+                <h1 class="ogp-title">{{title}}</h1>
+                <p class="ogp-description">{{desc}}</p>
+                <p class="ogp-site-name">{{site}}</p>
+            </div>
+        </a>
+    </div>
+    """;
+
 static class Extensions
 {
-    private static readonly Guid ImageNamespace = Guid.Parse("77A05C22-DF4C-450A-927D-3DF3CCB80004");
+    private static readonly Guid ThumbNamespace = Guid.Parse("77A05C22-DF4C-450A-927D-3DF3CCB80004");
 
-    public static async Task<Guid> SetOgpImage(this OgpDbContext db, HttpClient client, Uri originUrl)
+    public static async Task<Guid> SetOgpThumb(this OgpDbContext db, HttpClient client, Uri originUrl)
     {
-        var id = Uuid.NewNameBased(ImageNamespace, originUrl.ToString());
-        var iamge = await db.FindAsync<OgpImage>(id);
-        if (iamge?.ExpiresAt > DateTime.UtcNow)
+        var id = Uuid.NewNameBased(ThumbNamespace, originUrl.ToString());
+        var image = await db.FindAsync<OgpImage>(id);
+        if (image?.ExpiresAt > DateTime.UtcNow)
         {
             return id;
         }
         var req = new HttpRequestMessage(HttpMethod.Get, originUrl);
-        if (!string.IsNullOrEmpty(iamge?.Etag))
+        if (!string.IsNullOrEmpty(image?.Etag))
         {
-            req.Headers.IfNoneMatch.Add(new(iamge.Etag));
+            req.Headers.IfNoneMatch.Add(new(image.Etag));
         }
-        if (iamge?.LastModified is not null)
+        if (image?.LastModified is not null)
         {
-            req.Headers.IfModifiedSince = iamge.LastModified;
+            req.Headers.IfModifiedSince = image.LastModified;
         }
         var res = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
         var age = res.Headers.CacheControl?.MaxAge ?? default;
         age = age < TimeSpan.FromHours(1) ? TimeSpan.FromHours(1) : age;
         if (res.StatusCode == HttpStatusCode.NotModified)
         {
-            _ = iamge ?? throw new InvalidOperationException();
-            iamge = iamge with { ExpiresAt = DateTime.UtcNow + age };
+            _ = image ?? throw new InvalidOperationException();
+            image = image with { ExpiresAt = DateTime.UtcNow + age };
         }
         else
         {
@@ -223,14 +261,14 @@ static class Extensions
             var etag = res.Headers.ETag?.Tag;
             using var input = await res.Content.ReadAsStreamAsync();
             using var bitmap = SKBitmap.Decode(input);
-            using var image = SKImage.FromBitmap(bitmap);
-            using var data = image.Encode(SKEncodedImageFormat.Webp, 100);
+            using var ski = SKImage.FromBitmap(bitmap);
+            using var data = ski.Encode(SKEncodedImageFormat.Webp, 100);
             using var output = data.AsStream(true);
             var bytes = new byte[output.Length];
             await output.ReadAsync(bytes.AsMemory(0, bytes.Length));
-            iamge = new(id, originUrl, bytes, isa, exp, etag, last);
+            image = new(id, originUrl, bytes, isa, exp, etag, last);
         }
-        await db.Upsert(iamge).RunAsync();
+        await db.Upsert(image).RunAsync();
         return id;
     }
 
@@ -246,4 +284,7 @@ static class Extensions
         }
         return last;
     }
+
+    public static string GetBase64Image(this OgpImage image)
+        => $"data:{MediaTypeNames.Image.Webp};base64,{Convert.ToBase64String(image.Image)}";
 }

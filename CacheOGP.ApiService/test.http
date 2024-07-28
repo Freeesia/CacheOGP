@@ -1,3 +1,17 @@
 ﻿@baseUrl=https://localhost:7313
 
 GET {{baseUrl}}/info?url=https://qiita.com/Freesia_t/items/f3488b5b735185a00f3c
+
+###
+
+GET {{baseUrl}}/ogp?url=https://qiita.com/Freesia_t/items/f3488b5b735185a00f3c
+
+###
+
+GET {{baseUrl}}/embed?url=https://qiita.com/Freesia_t/items/f3488b5b735185a00f3c
+
+###
+
+GET {{baseUrl}}/image?url=https://qiita.com/Freesia_t/items/f3488b5b735185a00f3c
+
+###
