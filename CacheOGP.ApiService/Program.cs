@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text;
 using CacheOGP.ApiService;
+using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +13,7 @@ using PuppeteerSharp;
 using SkiaSharp;
 using UUIDNext;
 
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
 var browserFetcher = new BrowserFetcher(SupportedBrowser.Chromium);
@@ -91,7 +92,7 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
         var exp = isa + age;
         var last = res.Content.Headers.LastModified?.UtcDateTime;
         var etag = res.Headers.ETag?.Tag;
-        var ogp = OpenGraph.ParseHtml(await res.Content.ReadAsStringAsync());
+        var ogp = OpenGraph.ParseHtml(await res.Content.ReadContentAsHtmlString());
         var id = await db.SetOgpThumb(client, ogp.Image ?? throw new InvalidOperationException());
         info = new(
             url,
@@ -285,4 +286,16 @@ static class Extensions
 
     public static string GetBase64Image(this OgpImage image)
         => $"data:{MediaTypeNames.Image.Webp};base64,{Convert.ToBase64String(image.Image)}";
+
+    public static async Task<string> ReadContentAsHtmlString(this HttpContent content)
+    {
+        var stream = StreamManager.GetStream();
+        await content.CopyToAsync(stream);
+        stream.Position = 0;
+        var doc = new HtmlDocument();
+        var enc = doc.DetectEncoding(stream, true);
+        stream.Position = 0;
+        using var reader = new StreamReader(stream, enc);
+        return reader.ReadToEnd();
+    }
 }
