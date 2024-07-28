@@ -116,10 +116,11 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
 #if !DEBUG
 [OutputCache(Duration = 60 * 60), ResponseCache(Duration = 60 * 60)]
 #endif
-static async Task<IResult> GetOgpEmbed([FromQuery] Uri url, OgpDbContext db, HttpClient client)
+static async Task<IResult> GetOgpEmbed(OgpDbContext db, HttpClient client, [FromQuery] Uri url, [FromQuery] StyleType style = StyleType.Portrait, [FromQuery] string? css = null)
 {
     var ogp = await GetOgp(url, db, client);
-    return Results.Text(GenHtmlContent(ogp.Title, ogp.Url, "../" + ogp.Image.ToString(), ogp.Description, ogp.SiteName), MediaTypeNames.Text.Html, Encoding.UTF8);
+    var styleTag = GetStyle(style, css);
+    return Results.Text(GenHtmlContent(styleTag, ogp.Title, ogp.Url, "../" + ogp.Image.ToString(), ogp.Description, ogp.SiteName), MediaTypeNames.Text.Html, Encoding.UTF8);
 }
 
 #if !DEBUG
@@ -139,12 +140,16 @@ static async Task<IResult> GetThumb(Guid id, OgpDbContext db)
 #if !DEBUG
 [OutputCache(Duration = 60 * 60), ResponseCache(Duration = 60 * 60)]
 #endif
-static async Task<IResult> GetImage([FromQuery] Uri url, OgpDbContext db, HttpClient client, IBrowser browser)
+static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser browser, [FromQuery] Uri url, [FromQuery] StyleType style = StyleType.Portrait, [FromQuery] string? css = null)
 {
     var ogp = await GetOgpInfo(url, db, client);
 
     var ns = new Guid("95DDE42A-79E7-46C6-A9DC-25C8ED7CFF73");
-    var id = Uuid.NewNameBased(ns, ogp.Url.ToString());
+    var id = Uuid.NewNameBased(Uuid.NewNameBased(ns, ogp.Url.ToString()), style.ToString());
+    if (css is not null)
+    {
+        id = Uuid.NewNameBased(id, css);
+    }
     var image = await db.Images.FindAsync(id);
     if (image is null || image.ExpiresAt < DateTime.UtcNow || image.Etag != ogp.Etag || image.LastModified != ogp.LastModified)
     {
@@ -152,7 +157,8 @@ static async Task<IResult> GetImage([FromQuery] Uri url, OgpDbContext db, HttpCl
         await page.SetViewportAsync(ViewPortOptions.Default with { DeviceScaleFactor = 2 });
         var thumbId = new Guid(ogp.Image.OriginalString["thumb/".Length..]);
         var thumb = await db.Images.FindAsync(thumbId) ?? throw new InvalidOperationException();
-        await page.SetContentAsync(GenHtmlContent(ogp.Title, ogp.Url, thumb.GetBase64Image(), ogp.Description, ogp.SiteName));
+        var styleTag = GetStyle(style, css);
+        await page.SetContentAsync(GenHtmlContent(styleTag, ogp.Title, ogp.Url, thumb.GetBase64Image(), ogp.Description, ogp.SiteName));
         var element = await page.QuerySelectorAsync(".ogp-card") ?? throw new InvalidOperationException();
         // CaptureBeyondViewportÇtrueÇ…Ç∑ÇÈÇ∆ÅAâÊëúÇ™ÉoÉOÇÈ
         var sc = await element.ScreenshotDataAsync(new() { Type = ScreenshotType.Png, OmitBackground = true, CaptureBeyondViewport = false });
@@ -168,55 +174,21 @@ static async Task<IResult> GetImage([FromQuery] Uri url, OgpDbContext db, HttpCl
     return Results.Bytes(image.Image, MediaTypeNames.Image.Webp, lastModified: image.LastModified, entityTag: image.Etag is { } e ? new(e, true) : null);
 }
 
-static string GenHtmlContent(string title, Uri url, string image, string? desc, string? site)
+static string GenHtmlContent(string style, string title, Uri url, string image, string? desc, string? site)
     => $$"""
     <!DOCTYPE HTML>
     <meta chartset="utf-8">
     <title>{{title}}</title>
     <style>
     body {
-        font-family: Arial, sans-serif;
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
         margin: 0;
     }
-    .ogp-card {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        width: 600px;
-        background-color: #fff;
-        overflow: hidden;
-        text-decoration: none;
-    }
-    .ogp-card a {
-        text-decoration: none;
-        color: inherit;
-    }
-    .ogp-image {
-        width: 100%;
-        height: 400px;
-        object-fit: cover;
-    }
-    .ogp-content {
-        padding: 16px;
-    }
-    .ogp-title {
-        font-size: 1.5em;
-        margin: 0 0 8px;
-    }
-    .ogp-description {
-        color: #555;
-        margin: 0 0 16px;
-    }
-    .ogp-site-name {
-        font-size: 0.9em;
-        color: #888;
-        margin-block-end: 0px;
-    }
     </style>
+    {{style}}
     <div class="ogp-card">
         <a href="{{url}}" target="_blank">
             <img src="{{image}}" alt="OGP Image" class="ogp-image">
@@ -228,6 +200,148 @@ static string GenHtmlContent(string title, Uri url, string image, string? desc, 
         </a>
     </div>
     """;
+
+static string GetStyle(StyleType type, string? css)
+    => type switch
+    {
+        StyleType.Portrait => """
+        <style>
+        .ogp-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            background-color: #fff;
+            overflow: hidden;
+            text-decoration: none;
+        }
+        .ogp-card a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .ogp-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+        }
+        .ogp-content {
+            padding: 16px;
+        }
+        .ogp-title {
+            font-size: 1.5em;
+            margin: 0 0 8px;
+        }
+        .ogp-description {
+            color: #555;
+            margin: 0 0 16px;
+        }
+        .ogp-site-name {
+            font-size: 0.9em;
+            color: #888;
+            margin-block-end: 0px;
+        }
+        </style>
+        """,
+        StyleType.Landscape => """
+        <style>
+        .ogp-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 800px;
+            height: 180px;
+            background-color: #fff;
+            overflow: hidden;
+            text-decoration: none;
+        }
+        .ogp-card a {
+            display: flex;
+            text-decoration: none;
+            color: inherit;
+        }
+        .ogp-image {
+            width: 35%;
+            object-fit: cover;
+        }
+        .ogp-content {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        .ogp-title {
+            font-size: 1.2em;
+            margin: 0 0 8px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            -webkit-line-clamp: 2;
+        }
+        .ogp-description {
+            font-size: 0.9em;
+            color: #555;
+            margin: 0 0 16px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            -webkit-line-clamp: 2;
+        }
+        .ogp-site-name {
+            text-align: right;
+            font-size: 0.8em;
+            color: #888;
+            margin-block-end: 0px;
+        }
+        </style>
+        """,
+        StyleType.Overlay => """
+        <style>
+        .ogp-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            height: 400px;
+            background-color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .ogp-card img.ogp-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .ogp-content {
+            position: absolute;
+            bottom: 0;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        .ogp-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0;
+        }
+        .ogp-description {
+            display: none;
+        }
+        .ogp-site-name {
+            font-size: 0.9em;
+            margin-block-end: 0px;
+        }
+        </style>
+        """,
+        StyleType.Custom => $"<link rel=\"stylesheet\" href=\"{css}\">",
+        _ => throw new ArgumentOutOfRangeException(nameof(type)),
+    };
+
+enum StyleType
+{
+    Portrait,
+    Landscape,
+    Overlay,
+    Custom,
+}
 
 static class Extensions
 {
