@@ -21,7 +21,7 @@ var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
     Browser = SupportedBrowser.Chromium,
     Path = Path.Combine(Path.GetTempPath(), "cache-ogp", "browsers"),
  });
-await browserFetcher.DownloadAsync();
+var browser = await browserFetcher.DownloadAsync();
 
 // Add service defaults & Aspire components.
 builder.AddServiceDefaults();
@@ -37,7 +37,15 @@ builder.Services.AddResponseCompression(op =>
 {
     op.EnableForHttps = true;
 });
-builder.Services.AddSingleton(sp => Puppeteer.LaunchAsync(new() { Browser = SupportedBrowser.Chromium }, sp.GetService<ILoggerFactory>()).Result);
+builder.Services.AddSingleton(sp
+    => Puppeteer.LaunchAsync(
+        new()
+        {
+            UserDataDir = Path.Combine(Path.GetTempPath(), "cache-ogp", "userdata"),
+            Browser = browser.Browser,
+            ExecutablePath = browser.GetExecutablePath(),
+        },
+        sp.GetService<ILoggerFactory>()).Result);
 
 var app = builder.Build();
 
