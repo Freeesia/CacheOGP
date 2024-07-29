@@ -16,7 +16,11 @@ using UUIDNext;
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
-var browserFetcher = new BrowserFetcher(SupportedBrowser.Chromium);
+var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
+{
+    Browser = SupportedBrowser.Chromium,
+    Path = Path.Combine(Path.GetTempPath(), "cache-ogp", "browsers"),
+ });
 await browserFetcher.DownloadAsync();
 
 // Add service defaults & Aspire components.
