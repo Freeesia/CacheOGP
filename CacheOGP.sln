@@ -8,10 +8,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacheOGP.ServiceDefaults", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacheOGP.ApiService", "CacheOGP.ApiService\CacheOGP.ApiService.csproj", "{C8DBDABA-EB97-4B9A-9891-D078AC4BDC5D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacheOGP.Web", "CacheOGP.Web\CacheOGP.Web.csproj", "{70AE522C-465B-4D29-A2F0-4F3D19FD4A24}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacheOGP.DbInitializer", "CacheOGP.DbInitializer\CacheOGP.DbInitializer.csproj", "{F7613CE1-FF5E-4D96-8A9A-1331112437EB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,14 +26,6 @@ Global
 		{C8DBDABA-EB97-4B9A-9891-D078AC4BDC5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8DBDABA-EB97-4B9A-9891-D078AC4BDC5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8DBDABA-EB97-4B9A-9891-D078AC4BDC5D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{70AE522C-465B-4D29-A2F0-4F3D19FD4A24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{70AE522C-465B-4D29-A2F0-4F3D19FD4A24}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{70AE522C-465B-4D29-A2F0-4F3D19FD4A24}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{70AE522C-465B-4D29-A2F0-4F3D19FD4A24}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F7613CE1-FF5E-4D96-8A9A-1331112437EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F7613CE1-FF5E-4D96-8A9A-1331112437EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F7613CE1-FF5E-4D96-8A9A-1331112437EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F7613CE1-FF5E-4D96-8A9A-1331112437EB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
