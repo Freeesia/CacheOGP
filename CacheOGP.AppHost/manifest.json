@@ -37,7 +37,7 @@
       "type": "value.v0",
       "connectionString": "{data.connectionString};Database=ogp"
     },
-    "apiservice": {
+    "cache-ogp": {
       "type": "project.v0",
       "path": "../CacheOGP.ApiService/CacheOGP.ApiService.csproj",
       "env": {
@@ -45,7 +45,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-        "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
+        "HTTP_PORTS": "{cache-ogp.bindings.http.targetPort}",
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__ogp": "{ogp.connectionString}"
       },
