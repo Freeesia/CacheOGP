@@ -8,10 +8,4 @@ builder.AddProject<Projects.CacheOGP_ApiService>("apiservice")
     .WithReference(cache)
     .WithReference(ogp);
 
-if (builder.ExecutionContext.IsRunMode)
-{
-    builder.AddProject<Projects.CacheOGP_DbInitializer>("cacheogp-dbinitializer")
-        .WithReference(ogp);
-}
-
 builder.Build().Run();

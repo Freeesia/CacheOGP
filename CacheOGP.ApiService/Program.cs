@@ -37,6 +37,12 @@ builder.Services.AddSingleton(sp => Puppeteer.LaunchAsync(new() { Browser = Supp
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    await using var dbContext = scope.ServiceProvider.GetRequiredService<OgpDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
+
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 app.UseResponseCaching();
@@ -160,7 +166,7 @@ static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser
         var styleTag = GetStyle(style, css);
         await page.SetContentAsync(GenHtmlContent(styleTag, ogp.Title, ogp.Url, thumb.GetBase64Image(), ogp.Description, ogp.SiteName));
         var element = await page.QuerySelectorAsync(".ogp-card") ?? throw new InvalidOperationException();
-        // CaptureBeyondViewport‚ğtrue‚É‚·‚é‚ÆA‰æ‘œ‚ªƒoƒO‚é
+        // CaptureBeyondViewportï¿½ï¿½trueï¿½É‚ï¿½ï¿½ï¿½ÆAï¿½æ‘œï¿½ï¿½ï¿½oï¿½Oï¿½ï¿½
         var sc = await element.ScreenshotDataAsync(new() { Type = ScreenshotType.Png, OmitBackground = true, CaptureBeyondViewport = false });
         using var bitmap = SKBitmap.Decode(sc);
         using var ski = SKImage.FromBitmap(bitmap);
