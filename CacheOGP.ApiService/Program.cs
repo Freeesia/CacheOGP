@@ -20,7 +20,7 @@ var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
 {
     Browser = SupportedBrowser.Chromium,
     Path = Path.Combine(Path.GetTempPath(), "cache-ogp", "browsers"),
- });
+});
 var browser = await browserFetcher.DownloadAsync();
 
 // Add service defaults & Aspire components.
@@ -158,12 +158,14 @@ static async Task<IResult> GetThumb(Guid id, OgpDbContext db)
 #if !DEBUG
 [OutputCache(Duration = 60 * 60), ResponseCache(Duration = 60 * 60)]
 #endif
-static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser browser, [FromQuery] Uri url, [FromQuery] StyleType style = StyleType.Portrait, [FromQuery] string? css = null)
+static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser browser, [FromQuery] Uri url, [FromQuery] int scale = 1, [FromQuery] StyleType style = StyleType.Portrait, [FromQuery] string? css = null)
 {
     var ogp = await GetOgpInfo(url, db, client);
 
     var ns = new Guid("95DDE42A-79E7-46C6-A9DC-25C8ED7CFF73");
-    var id = Uuid.NewNameBased(Uuid.NewNameBased(ns, ogp.Url.ToString()), style.ToString());
+    var id = Uuid.NewNameBased(ns, ogp.Url.ToString());
+    id = Uuid.NewNameBased(id, style.ToString());
+    id = Uuid.NewNameBased(id, scale.ToString());
     if (css is not null)
     {
         id = Uuid.NewNameBased(id, css);
@@ -172,7 +174,7 @@ static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser
     if (image is null || image.ExpiresAt < DateTime.UtcNow || image.Etag != ogp.Etag || image.LastModified != ogp.LastModified)
     {
         using var page = await browser.NewPageAsync();
-        await page.SetViewportAsync(ViewPortOptions.Default with { DeviceScaleFactor = 2 });
+        await page.SetViewportAsync(ViewPortOptions.Default with { DeviceScaleFactor = scale });
         var thumbId = new Guid(ogp.Image.OriginalString["thumb/".Length..]);
         var thumb = await db.Images.FindAsync(thumbId) ?? throw new InvalidOperationException();
         var styleTag = GetStyle(style, css);
