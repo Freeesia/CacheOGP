@@ -41,7 +41,10 @@ builder.Services.AddSingleton(sp
     => Puppeteer.LaunchAsync(
         new()
         {
-            Args = ["--no-sandbox"],
+            Args = [
+                "--no-sandbox",
+                "--font-family=sans-serif",
+            ],
             UserDataDir = Path.Combine(Path.GetTempPath(), "cache-ogp", "userdata"),
             Browser = browser.Browser,
             ExecutablePath = browser.GetExecutablePath(),

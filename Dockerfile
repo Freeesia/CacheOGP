@@ -10,12 +10,14 @@ RUN dotnet publish -c Release -o out
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
-LABEL org.opencontainers.image.source "https://github.com/Freeesia/CacheOGP"
-ENV LANG ja_JP.UTF-8
+LABEL org.opencontainers.image.source="https://github.com/Freeesia/CacheOGP"
+ENV LANG=ja_JP.UTF-8
 RUN apt-get update &&\
     apt-get install -y libgtk-3.0 libgbm-dev libnss3 libatk-bridge2.0-0 libasound2 locales fonts-ipafont fonts-ipaexfont fonts-noto-cjk &&\
     echo "ja_JP UTF-8" > /etc/locale.gen &&\
-    locale-gen
+    locale-gen &&\
+    apt-get clean &&\
+    rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build-env /app/out .
 ENTRYPOINT ["dotnet", "CacheOGP.ApiService.dll"]
