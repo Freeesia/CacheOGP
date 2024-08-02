@@ -64,6 +64,71 @@ app.UseResponseCaching();
 app.UseOutputCache();
 app.UseResponseCompression();
 
+
+const string Index = """
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>CacheOGP</title>
+<style>
+iframe {
+    width: 800px;
+    height: 600px;
+    border: 1px solid #ccc;
+    margin-top: 20px;
+}
+pre {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap; /* Enable line wrap */
+    word-wrap: break-word; /* Prevent overflow */
+    overflow: auto; /* Add scrollbars if needed */
+}
+</style>
+<h1>CacheOGP</h1>
+<p>Cache Open Graph Protocol</p>
+<div>
+<input type="number" id="scale-input" placeholder="スケール値" step="1" min="1">
+<select id="style-select">
+    <option value="Portrait">Portrait</option>
+    <option value="Landscape">Landscape</option>
+    <option value="Overlay">Overlay</option>
+</select>
+</div>
+<input type="text" id="url-input" placeholder="URLを入力してください">
+<button id="load-button">表示</button>
+<pre id="ogp-json"></pre>
+<iframe id="embed-display" src=""></iframe>
+<pre id="embed-html"></pre>
+<img id="image-display" src="" alt="OGP Image">
+<pre id="image-md"></pre>
+
+<script>
+document.getElementById('load-button').addEventListener('click', async function() {
+    var url = document.getElementById('url-input').value;
+    var scale = document.getElementById('scale-input').value || 1.0;
+    var mode = document.getElementById('style-select').value;
+    if (url) {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'http://' + url;
+        }
+        document.getElementById('embed-display').src = `/embed?style=${mode}&url=${encodeURIComponent(url)}`;
+        document.getElementById('embed-html').innerText = `<iframe src="${location}embed?style=${mode}&url=${encodeURIComponent(url)}"></iframe>`;
+        document.getElementById('image-display').src = `/image?scale=${scale}&style=${mode}&url=${encodeURIComponent(url)}`;
+        document.getElementById('image-md').innerText = `[![Alt](${location}image?scale=${scale}&style=${mode}&url=${url})](${url})`;
+        document.getElementById('ogp-json').innerText = JSON.stringify(await (await fetch('/ogp?url=' + encodeURIComponent(url))).json(), null, 2);
+    } else {
+        alert('URLを入力してください。');
+    }
+});
+</script>
+""";
+
+app.MapGet("/", () => Results.Text(Index, MediaTypeNames.Text.Html, Encoding.UTF8));
 app.MapGet("/info", GetOgpInfo);
 app.MapGet("/ogp", GetOgp);
 app.MapGet("/embed", GetOgpEmbed);
@@ -217,6 +282,7 @@ static string GenHtmlContent(string style, string title, Uri url, string image, 
             <img src="{{image}}" alt="OGP Image" class="ogp-image">
             <div class="ogp-content">
                 <h1 class="ogp-title">{{title}}</h1>
+                <p class="ogp-utl">{{url}}</p>
                 <p class="ogp-description">{{desc}}</p>
                 <p class="ogp-site-name">{{site}}</p>
             </div>
@@ -253,6 +319,9 @@ static string GetStyle(StyleType type, string? css)
         .ogp-title {
             font-size: 1.5em;
             margin: 0 0 8px;
+        }
+        .ogp-url {
+            display: none;
         }
         .ogp-description {
             color: #555;
@@ -297,6 +366,9 @@ static string GetStyle(StyleType type, string? css)
             text-overflow: ellipsis;
             overflow: hidden;
             -webkit-line-clamp: 2;
+        }
+        .ogp-url {
+            display: none;
         }
         .ogp-description {
             font-size: 0.9em;
@@ -344,6 +416,9 @@ static string GetStyle(StyleType type, string? css)
             font-size: 1.5em;
             font-weight: bold;
             margin: 0;
+        }
+        .ogp-url {
+            display: none;
         }
         .ogp-description {
             display: none;
