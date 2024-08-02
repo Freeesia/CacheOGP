@@ -43,7 +43,6 @@ builder.Services.AddSingleton(sp
         {
             Args = [
                 "--no-sandbox",
-                "--font-family=sans-serif",
             ],
             UserDataDir = Path.Combine(Path.GetTempPath(), "cache-ogp", "userdata"),
             Browser = browser.Browser,
@@ -184,7 +183,7 @@ static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser
         var styleTag = GetStyle(style, css);
         await page.SetContentAsync(GenHtmlContent(styleTag, ogp.Title, ogp.Url, thumb.GetBase64Image(), ogp.Description, ogp.SiteName));
         var element = await page.QuerySelectorAsync(".ogp-card") ?? throw new InvalidOperationException();
-        // CaptureBeyondViewport��true�ɂ���ƁA�摜���o�O��
+        // CaptureBeyondViewportをtrueにしないと画像が欠ける
         var sc = await element.ScreenshotDataAsync(new() { Type = ScreenshotType.Png, OmitBackground = true, CaptureBeyondViewport = false });
         using var bitmap = SKBitmap.Decode(sc);
         using var ski = SKImage.FromBitmap(bitmap);
