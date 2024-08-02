@@ -21,8 +21,6 @@ RUN apt-get update && apt-get install -y \
         locales \
         # ここからフォント関連
         fonts-noto-color-emoji \
-        fonts-ipafont \
-        fonts-ipaexfont \
         fonts-noto-cjk &&\
     echo "ja_JP UTF-8" > /etc/locale.gen &&\
     locale-gen &&\
