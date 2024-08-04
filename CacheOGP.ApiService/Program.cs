@@ -282,7 +282,7 @@ static string GenHtmlContent(string style, string title, Uri url, string image, 
             <img src="{{image}}" alt="OGP Image" class="ogp-image">
             <div class="ogp-content">
                 <h1 class="ogp-title">{{title}}</h1>
-                <p class="ogp-utl">{{url}}</p>
+                <p class="ogp-url">{{url}}</p>
                 <p class="ogp-description">{{desc}}</p>
                 <p class="ogp-site-name">{{site}}</p>
             </div>
@@ -310,27 +310,44 @@ static string GetStyle(StyleType type, string? css)
         }
         .ogp-image {
             width: 100%;
-            height: 400px;
+            height: 380px;
             object-fit: cover;
         }
         .ogp-content {
-            padding: 16px;
+            padding: 1em 1em 0.5em 1em;
         }
         .ogp-title {
             font-size: 1.5em;
-            margin: 0 0 8px;
+            margin: 0;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
         .ogp-url {
-            display: none;
+            font-size: 0.8em;
+            color: #888;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .ogp-description {
             color: #555;
-            margin: 0 0 16px;
+            margin: 0.6em 0;
+            line-height: 1.4em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
         }
         .ogp-site-name {
             font-size: 0.9em;
             color: #888;
-            margin-block-end: 0px;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         </style>
         """,
