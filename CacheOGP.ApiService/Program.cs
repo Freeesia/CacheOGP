@@ -71,8 +71,8 @@ const string Index = """
 <title>CacheOGP</title>
 <style>
 iframe {
-    width: 800px;
-    height: 600px;
+    width: 860px;
+    height: 800px;
     border: 1px solid #ccc;
     margin-top: 20px;
 }
@@ -238,11 +238,15 @@ static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser
     {
         id = Uuid.NewNameBased(id, css);
     }
+#if DEBUG
+    OgpImage? image = null;
+#else
     var image = await db.Images.FindAsync(id);
+#endif
     if (image is null || image.ExpiresAt < DateTime.UtcNow || image.Etag != ogp.Etag || image.LastModified != ogp.LastModified)
     {
         using var page = await browser.NewPageAsync();
-        await page.SetViewportAsync(ViewPortOptions.Default with { DeviceScaleFactor = scale });
+        await page.SetViewportAsync(ViewPortOptions.Default with { DeviceScaleFactor = scale, Width = 860, Height = 800 });
         var thumbId = new Guid(ogp.Image.OriginalString["thumb/".Length..]);
         var thumb = await db.Images.FindAsync(thumbId) ?? throw new InvalidOperationException();
         var styleTag = GetStyle(style, css);
@@ -338,7 +342,7 @@ static string GetStyle(StyleType type, string? css)
             line-height: 1.4em;
             overflow: hidden;
             display: -webkit-box;
-            -webkit-line-clamp: 4;
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
         }
         .ogp-site-name {
@@ -357,8 +361,7 @@ static string GetStyle(StyleType type, string? css)
             border: 1px solid #ddd;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width: 800px;
-            height: 180px;
+            width: 840px;
             background-color: #fff;
             overflow: hidden;
             text-decoration: none;
@@ -369,7 +372,7 @@ static string GetStyle(StyleType type, string? css)
             color: inherit;
         }
         .ogp-image {
-            width: 35%;
+            width: 30%;
             object-fit: cover;
         }
         .ogp-content {
@@ -379,27 +382,37 @@ static string GetStyle(StyleType type, string? css)
         }
         .ogp-title {
             font-size: 1.2em;
-            margin: 0 0 8px;
+            margin: 0;
             text-overflow: ellipsis;
             overflow: hidden;
             -webkit-line-clamp: 2;
         }
         .ogp-url {
-            display: none;
+            font-size: 0.8em;
+            color: #888;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .ogp-description {
             font-size: 0.9em;
             color: #555;
-            margin: 0 0 16px;
-            text-overflow: ellipsis;
+            margin: 0.4em 0;
+            line-height: 1.4em;
             overflow: hidden;
-            -webkit-line-clamp: 2;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
         }
         .ogp-site-name {
             text-align: right;
             font-size: 0.8em;
             color: #888;
-            margin-block-end: 0px;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         </style>
         """,
@@ -424,7 +437,7 @@ static string GetStyle(StyleType type, string? css)
             position: absolute;
             bottom: 0;
             padding: 8px;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             color: white;
             display: flex;
             flex-direction: column;
@@ -435,14 +448,22 @@ static string GetStyle(StyleType type, string? css)
             margin: 0;
         }
         .ogp-url {
-            display: none;
+            font-size: 0.8em;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .ogp-description {
             display: none;
         }
         .ogp-site-name {
-            font-size: 0.9em;
-            margin-block-end: 0px;
+            text-align: right;
+            font-size: 0.8em;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         </style>
         """,
