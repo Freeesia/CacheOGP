@@ -7,11 +7,27 @@ CacheOGP は、Webサイトの Open Graph Protocol (OGP) 情報を取得し、�
 このアプリケーションでは、ユーザーが入力した URL の OGP 情報を取得し、以下の機能を提供します。
 
 * **OGP 情報の取得:** URL を元に、Webページの OGP 情報 (タイトル、画像 URL、説明文など) を取得します。
+    ```json
+    {
+        "url": "https://github.com/Freeesia/CacheOGP",
+        "title": "GitHub - Freeesia/CacheOGP: ogp情報をキャッシュするサーバーアプリ",
+        "type": "object",
+        "image": "thumb/6cdcf72c-7624-5f27-88f3-08d4ffa35532",
+        "siteName": "GitHub",
+        "description": "ogp情報をキャッシュするサーバーアプリ. Contribute to Freeesia/CacheOGP development by creating an account on GitHub.",
+        "locale": null
+    }
+    ```
 * **OGP 情報の表示:** 取得した OGP 情報を元に、HTML を生成して 埋め込み用のWeb ページとして表示します。
     * 表示スタイルは、ポートレート、ランドスケープ、オーバーレイ、カスタムの 4 種類から選択できます。
+    * Portrate
+    ![Portrate](image.png)
+    * Landscape
+    ![Landscape](image-1.png)
+    * Overlay
+    ![Overlay](image-2.png)
 * **OGP 画像の取得:** 指定された URL を元に、埋め込み用Webページを描画した結果を画像として取得します。
-    * 取得した画像を必要に応じてリサイズしたり、別の形式 (WebP) に変換します。
-    * 加工した画像をMarkdownのイメージとして利用することができます。
+    * 取得した画像をMarkdownのイメージとして利用することができます。
 
 ### 利用方法
 
