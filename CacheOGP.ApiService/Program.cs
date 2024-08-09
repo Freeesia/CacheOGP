@@ -314,11 +314,11 @@ static string GetStyle(StyleType type, string? css)
         }
         .ogp-image {
             width: 100%;
-            height: 380px;
+            height: 320px;
             object-fit: cover;
         }
         .ogp-content {
-            padding: 1em 1em 0.5em 1em;
+            padding: 0.5em 1em;
         }
         .ogp-title {
             font-size: 1.5em;
@@ -423,7 +423,7 @@ static string GetStyle(StyleType type, string? css)
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             width: 600px;
-            height: 400px;
+            height: 320px;
             background-color: #fff;
             position: relative;
             overflow: hidden;
