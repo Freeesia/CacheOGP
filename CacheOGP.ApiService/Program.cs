@@ -441,6 +441,7 @@ static string GetStyle(StyleType type, string? css)
             color: white;
             display: flex;
             flex-direction: column;
+            width: calc(100% - 16px);
         }
         .ogp-title {
             font-size: 1.5em;
