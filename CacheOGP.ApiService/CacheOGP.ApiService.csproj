@@ -26,7 +26,7 @@
     <PackageReference Include="PuppeteerSharp" Version="20.0.5" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.9" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
-    <PackageReference Include="UUIDNext" Version="3.0.0" />
+    <PackageReference Include="UUIDNext" Version="4.0.0" />
   </ItemGroup>
 
   <ItemGroup>
