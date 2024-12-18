@@ -259,7 +259,7 @@ static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser
         using var data = ski.Encode(SKEncodedImageFormat.Webp, 100);
         using var output = data.AsStream(true);
         var bytes = new byte[output.Length];
-        await output.ReadAsync(bytes.AsMemory(0, bytes.Length));
+        await output.ReadExactlyAsync(bytes.AsMemory(0, bytes.Length));
         image = new(id, url, bytes, ogp.IssuedAt, ogp.ExpiresAt, ogp.Etag, ogp.LastModified);
         await db.Upsert(image).RunAsync();
     }
@@ -529,7 +529,7 @@ static class Extensions
             using var data = ski.Encode(SKEncodedImageFormat.Webp, 100);
             using var output = data.AsStream(true);
             var bytes = new byte[output.Length];
-            await output.ReadAsync(bytes.AsMemory(0, bytes.Length));
+            await output.ReadExactlyAsync(bytes.AsMemory(0, bytes.Length));
             image = new(id, originUrl, bytes, isa, exp, etag, last);
         }
         await db.Upsert(image).RunAsync();
