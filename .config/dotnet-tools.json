@@ -3,7 +3,7 @@
   "isRoot": true,
   "tools": {
     "aspirate": {
-      "version": "8.0.7",
+      "version": "9.0.4",
       "commands": [
         "aspirate"
       ],
