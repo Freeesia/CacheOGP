@@ -10,7 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.1.0" />
-    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="9.1.0" />
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="9.2.0" />
     <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="9.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.3">
       <PrivateAssets>all</PrivateAssets>
