@@ -29,4 +29,5 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 EXPOSE 8080
 COPY --from=build-env /app/out .
+VOLUME [ "/tmp/cache-ogp" ]
 ENTRYPOINT ["dotnet", "CacheOGP.ApiService.dll"]
