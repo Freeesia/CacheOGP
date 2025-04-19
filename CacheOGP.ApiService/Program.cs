@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Mime;
+using System.Reflection;
 using System.Text;
 using CacheOGP.ApiService;
 using HtmlAgilityPack;
@@ -28,7 +29,9 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 builder.Services.AddProblemDetails();
-builder.Services.AddHttpClient();
+builder.Services.ConfigureHttpClientDefaults(op
+    => op.ConfigureHttpClient(c
+        => c.DefaultRequestHeaders.UserAgent.ParseAdd($"CacheOGP/{Assembly.GetExecutingAssembly().GetName().Version}")));
 
 builder.AddRedisOutputCache("cache");
 builder.AddNpgsqlDbContext<OgpDbContext>("ogp");
@@ -165,6 +168,7 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
         req.Headers.IfModifiedSince = info.LastModified;
     }
     var res = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+    res.EnsureSuccessStatusCode();
     var age = res.Headers.CacheControl?.MaxAge ?? default;
     age = age < TimeSpan.FromHours(1) ? TimeSpan.FromHours(1) : age;
     if (res.StatusCode == HttpStatusCode.NotModified)
@@ -178,7 +182,8 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
         var exp = isa + age;
         var last = res.Content.Headers.LastModified?.UtcDateTime;
         var etag = res.Headers.ETag?.Tag;
-        var ogp = OpenGraph.ParseHtml(await res.Content.ReadContentAsHtmlString());
+        var html = await res.Content.ReadContentAsHtmlString();
+        var ogp = OpenGraph.ParseHtml(html);
         var id = await db.SetOgpThumb(client, ogp.Image ?? throw new InvalidOperationException());
         info = new(
             url,
