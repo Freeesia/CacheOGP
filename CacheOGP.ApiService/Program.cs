@@ -17,7 +17,7 @@ using UUIDNext;
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
 
-var browserFetcher = new BrowserFetcher(new BrowserFetcherOptions
+var browserFetcher = Puppeteer.CreateBrowserFetcher(new()
 {
     Browser = SupportedBrowser.Chromium,
     Path = Path.Combine(Path.GetTempPath(), "cache-ogp", "browsers"),
