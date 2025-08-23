@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Net.Mime;
 using System.Reflection;
@@ -168,7 +168,6 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
         req.Headers.IfModifiedSince = info.LastModified;
     }
     var res = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
-    res.EnsureSuccessStatusCode();
     var age = res.Headers.CacheControl?.MaxAge ?? default;
     age = age < TimeSpan.FromHours(1) ? TimeSpan.FromHours(1) : age;
     if (res.StatusCode == HttpStatusCode.NotModified)
@@ -178,6 +177,7 @@ static async Task<OgpInfo> GetOgpInfo([FromQuery] Uri url, OgpDbContext db, Http
     }
     else
     {
+        res.EnsureSuccessStatusCode();
         var isa = res.Headers.Date?.UtcDateTime ?? DateTime.UtcNow;
         var exp = isa + age;
         var last = res.Content.Headers.LastModified?.UtcDateTime;
