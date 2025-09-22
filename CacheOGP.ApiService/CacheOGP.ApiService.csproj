@@ -22,7 +22,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageReference Include="OpenGraph-Net" Version="4.0.1" />
-    <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="9.100.0" />
+    <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="9.100.1" />
     <PackageReference Include="PuppeteerSharp" Version="20.2.2" />
     <PackageReference Include="SkiaSharp" Version="3.119.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.0" />
