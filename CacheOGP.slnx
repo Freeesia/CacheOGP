@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="CacheOGP.ApiService/CacheOGP.ApiService.csproj" />
+  <Project Path="CacheOGP.AppHost/CacheOGP.AppHost.csproj" />
+  <Project Path="CacheOGP.ServiceDefaults/CacheOGP.ServiceDefaults.csproj" />
+</Solution>
