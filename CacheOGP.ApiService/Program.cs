@@ -1,18 +1,16 @@
-﻿using System.Globalization;
-using System.Net;
-using System.Net.Mime;
-using System.Reflection;
-using System.Text;
-using CacheOGP.ApiService;
+﻿using CacheOGP.ApiService;
+using DeterministicGuids;
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IO;
 using OpenGraphNet;
 using PuppeteerSharp;
 using SkiaSharp;
-using UUIDNext;
+using System.Net;
+using System.Net.Mime;
+using System.Reflection;
+using System.Text;
 
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var builder = WebApplication.CreateBuilder(args);
@@ -236,12 +234,12 @@ static async Task<IResult> GetImage(OgpDbContext db, HttpClient client, IBrowser
     var ogp = await GetOgpInfo(url, db, client);
 
     var ns = new Guid("95DDE42A-79E7-46C6-A9DC-25C8ED7CFF73");
-    var id = Uuid.NewNameBased(ns, ogp.Url.ToString());
-    id = Uuid.NewNameBased(id, style.ToString());
-    id = Uuid.NewNameBased(id, scale.ToString());
+    var id = DeterministicGuid.Create(ns, ogp.Url.ToString());
+    id = DeterministicGuid.Create(id, style.ToString());
+    id = DeterministicGuid.Create(id, scale.ToString());
     if (css is not null)
     {
-        id = Uuid.NewNameBased(id, css);
+        id = DeterministicGuid.Create(id, css);
     }
 #if DEBUG
     OgpImage? image = null;
@@ -492,7 +490,7 @@ static class Extensions
 
     public static async Task<Guid> SetOgpThumb(this OgpDbContext db, HttpClient client, Uri originUrl)
     {
-        var id = Uuid.NewNameBased(ThumbNamespace, originUrl.ToString());
+        var id = DeterministicGuid.Create(ThumbNamespace, originUrl.ToString());
         var image = await db.FindAsync<OgpImage>(id);
         if (image?.ExpiresAt > DateTime.UtcNow)
         {
