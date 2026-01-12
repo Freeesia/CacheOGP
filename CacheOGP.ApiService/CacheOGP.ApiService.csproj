@@ -27,7 +27,7 @@
     <PackageReference Include="SkiaSharp" Version="3.119.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.1" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.1" />
-    <PackageReference Include="UUIDNext" Version="4.2.2" />
+    <PackageReference Include="UUIDNext" Version="4.2.3" />
   </ItemGroup>
 
   <ItemGroup>
