@@ -20,7 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="4.0.1" />
     <PackageReference Include="OpenGraph-Net" Version="4.0.1" />
     <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="9.103.0" />
     <PackageReference Include="PuppeteerSharp" Version="25.7.0" />
