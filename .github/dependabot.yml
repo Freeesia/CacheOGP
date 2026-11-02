@@ -5,6 +5,10 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      nuget-dependencies:
+        patterns:
+          - "*"
     reviewers:
       - "Freeesia"
   # github-actioonsの更新
